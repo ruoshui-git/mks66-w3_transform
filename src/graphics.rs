@@ -346,7 +346,7 @@ impl PPMImg {
                 Some(p1) => (p1[0], p1[1], p1[2]),
                 None => panic!("Number of edges must be a multiple of 2"),
             };
-
+            
             self.draw_line(x0, y0, x1, y1);
         }
 
