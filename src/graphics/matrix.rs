@@ -142,6 +142,8 @@ impl Matrix {
         m
     }
 
+
+    
     #[allow(dead_code)]
     /// Transforms self into an identity matrix
     pub fn to_ident(&mut self) {
@@ -156,6 +158,63 @@ impl Matrix {
                 0.0
             }
         }
+    }
+}
+
+#[allow(dead_code)]
+// generate transformation matrices
+impl Matrix
+{
+    /// Generate a translate matrix with (dx, dy, dz)
+    pub fn mv(dx: f64, dy: f64, dz: f64) -> Matrix
+    {
+        let mut m = Matrix::ident(4);
+
+        m.set(3, 0, dx);
+        m.set(3, 1, dy);
+        m.set(3, 2, dz);
+        m
+    }
+
+    /// Generate a scale matrix with (sx, sy, sz)
+    pub fn scale(sx: f64, sy: f64, sz: f64) -> Matrix
+    {
+        let mut m = Matrix::ident(4);
+        m.set(0, 0, sx);
+        m.set(1, 1, sy);
+        m.set(2, 2, sz);
+        m
+    }
+
+    pub fn rotatex(angle_deg: f64) -> Matrix
+    {
+        let mut m = Matrix::ident(4);
+        m.set(1, 1, angle_deg.to_radians().cos());
+        m.set(2, 2, angle_deg.to_radians().cos());
+        m.set(1, 2, -angle_deg.to_radians().sin());
+        m.set(2, 1, angle_deg.to_radians().sin());
+
+        m
+    }
+
+    pub fn rotatey(angle_deg: f64) -> Matrix
+    {
+        let mut m = Matrix::ident(4);
+        m.set(0, 0, angle_deg.to_radians().cos());
+        m.set(0, 2, angle_deg.to_radians().sin());
+        m.set(2, 0, -angle_deg.to_radians().sin());
+        m.set(2, 2, angle_deg.to_radians().cos());
+        m
+    }
+
+    pub fn rotatez(angle_deg: f64) -> Matrix
+    {
+        let mut m = Matrix::ident(4);
+        m.set(0, 0, angle_deg.to_radians().cos());
+        m.set(1, 1, angle_deg.to_radians().cos());
+        m.set(1, 0, angle_deg.to_radians().sin());
+        m.set(0, 1, -angle_deg.to_radians().sin());
+        m
     }
 }
 
