@@ -4,8 +4,8 @@ use std::fmt;
 /// Row major rectangular matrix
 /// Each row represents a new point
 pub struct Matrix {
-    rows: usize,
-    cols: usize,
+    nrows: usize,
+    ncols: usize,
     data: Vec<f64>,
 }
 
@@ -13,30 +13,30 @@ pub struct Matrix {
 impl Matrix {
     /// Row major index
     fn index(&self, row: usize, col: usize) -> usize {
-        row * self.cols + col
-        // col * self.rows + row
+        row * self.ncols + col
+        // col * self.nrows + row
     }
 
     #[allow(dead_code)]
-    pub fn new_clone_vec(rows: usize, cols: usize, data: &Vec<f64>) -> Matrix {
-        assert_eq!(rows * cols, data.len(), "rows * cols must == data.len()");
+    pub fn new_clone_vec(nrows: usize, ncols: usize, data: &Vec<f64>) -> Matrix {
+        assert_eq!(nrows * ncols, data.len(), "nrows * ncols must == data.len()");
 
         Matrix {
-            rows,
-            cols,
+            nrows,
+            ncols,
             data: data.clone(),
         }
     }
 
     #[allow(dead_code)]
-    pub fn new(rows: usize, cols: usize, data: Vec<f64>) -> Matrix {
-        assert_eq!(rows * cols, data.len(), "rows * cols must == data.len()");
-        Matrix { rows, cols, data }
+    pub fn new(nrows: usize, ncols: usize, data: Vec<f64>) -> Matrix {
+        assert_eq!(nrows * ncols, data.len(), "nrows * ncols must == data.len()");
+        Matrix { nrows, ncols, data }
     }
 
     #[allow(dead_code)]
     pub fn get(&self, row: usize, col: usize) -> Option<f64> {
-        if row > self.rows || col > self.cols {
+        if row > self.nrows || col > self.ncols {
             None
         } else {
             Some(self.data[self.index(row, col)])
@@ -45,7 +45,7 @@ impl Matrix {
 
     #[allow(dead_code)]
     pub fn set(&mut self, row: usize, col: usize, data: f64) {
-        assert!(row < self.rows && col < self.cols, "Index out of bound");
+        assert!(row < self.nrows && col < self.ncols, "Index out of bound");
         let i = self.index(row, col);
         self.data[i] = data;
     }
@@ -56,24 +56,22 @@ impl Matrix {
 impl Matrix {
     pub fn append_row(&mut self, row: &mut Vec<f64>) {
         assert_eq!(
-            self.cols,
+            self.ncols,
             row.len(),
             "Length of edge and matrix column size don't match"
         );
         self.data.append(row);
-        self.rows += 1;
+        self.nrows += 1;
     }
 
     #[allow(dead_code)]
     pub fn append_edge(&mut self, edge: &mut Vec<f64>) {
-        assert_eq!(
-            self.cols,
-            edge.len() + 1,
-            "Length of edge and matrix column size don't match"
-        );
-        edge.push(1.0);
-        self.data.append(edge);
-        self.rows += 1;
+        assert_eq!(6, edge.len(), "Len of edge vec should be 6");
+        self.data.extend_from_slice(&edge[0..3]);
+        self.data.push(1.0);
+        self.data.extend_from_slice(&edge[3..6]);
+        self.data.push(1.0);
+        self.nrows += 2;
     }
 }
 
@@ -83,35 +81,36 @@ impl Matrix {
 
     /// Iterate over a certain row
     pub fn row_iter<'a>(&'a self, r: usize) -> impl Iterator<Item = &f64> {
-        let start = r * self.cols;
-        self.data[start..start + self.cols].iter()
+        let start = r * self.ncols;
+        self.data[start..start + self.ncols].iter()
     }
 
     /// Iterate over a certain column
     pub fn col_iter<'a>(&'a self, c: usize) -> impl Iterator<Item = &f64> {
-        self.data.iter().skip(c).step_by(self.cols)
+        self.data.iter().skip(c).step_by(self.ncols)
     }
 
     /// Interate over the matrix by row, one row at a time
     /// 
     /// Returns an iterator for the row
     pub fn iter_by_row(&self) -> std::slice::Chunks<'_, f64> {
-        self.data.as_slice().chunks(self.cols)
+        self.data.as_slice().chunks(self.ncols)
     }
 }
 
 #[allow(dead_code)]
 // mul
 impl Matrix {
-    fn index_to_rc(i: usize, cols: usize) -> (usize, usize) {
-        (i / cols, i % cols)
+    /// Returns (x, y) of a matrix based on ncols and i
+    fn index_to_rc(i: usize, ncols: usize) -> (usize, usize) {
+        (i / ncols, i % ncols)
     }
 
     /// Multiplies self matrix by other matrix
     pub fn mul(&self, other: &Self) -> Self {
         // other * self
-        assert_eq!(self.cols, other.rows, "cols of m1 must == rows of m2");
-        let (frows, fcols) = (self.rows, other.cols);
+        assert_eq!(self.ncols, other.nrows, "ncols of m1 must == nrows of m2");
+        let (frows, fcols) = (self.nrows, other.ncols);
         let mut fdata = vec![0.0; frows * fcols];
         for (i, d) in fdata.iter_mut().enumerate() {
             let (r, c) = Self::index_to_rc(i, fcols);
@@ -119,6 +118,17 @@ impl Matrix {
                 .row_iter(r)
                 .zip(other.col_iter(c))
                 .fold(0.0, |sum, (a, b)| sum + a * b);
+        }
+        Matrix::new(frows, fcols, fdata)
+    }
+
+    pub fn transposed_mul(&self, other: &Self) -> Self {
+        assert_eq!(self.nrows, other.ncols, "nrows of m1 must == ncols of m2");
+        let (frows, fcols) = (other.nrows, self.nrows);
+        let mut fdata = vec![0.0; frows * fcols];
+        for (i, d) in fdata.iter_mut().enumerate() {
+            let (r, c) = Self::index_to_rc(i, fcols);
+            *d = self.col_iter(c).zip(other.row_iter(r)).fold(0.0, |sum, (a, b)| sum + a * b);
         }
         Matrix::new(frows, fcols, fdata)
     }
@@ -147,10 +157,10 @@ impl Matrix {
     #[allow(dead_code)]
     /// Transforms self into an identity matrix
     pub fn to_ident(&mut self) {
-        let cols = self.cols;
+        let ncols = self.ncols;
         for (i, d) in self.data.iter_mut().enumerate() {
             *d = if {
-                let (r, c) = Matrix::index_to_rc(i, cols);
+                let (r, c) = Matrix::index_to_rc(i, ncols);
                 r == c
             } {
                 1.0
@@ -188,23 +198,36 @@ impl Matrix
 
     pub fn rotatex(angle_deg: f64) -> Matrix
     {
-        let mut m = Matrix::ident(4);
-        m.set(1, 1, angle_deg.to_radians().cos());
-        m.set(2, 2, angle_deg.to_radians().cos());
-        m.set(1, 2, -angle_deg.to_radians().sin());
-        m.set(2, 1, angle_deg.to_radians().sin());
-
-        m
+        // let mut m = Matrix::ident(4);
+        // m.set(1, 1, angle_deg.to_radians().cos());
+        // m.set(2, 2, angle_deg.to_radians().cos());
+        // m.set(1, 2, -angle_deg.to_radians().sin());
+        // m.set(2, 1, angle_deg.to_radians().sin());
+        // m
+        let a = angle_deg * std::f64::consts::PI / 180.0;
+        Matrix::new(4, 4, vec![
+            1.0, 0.0, 0.0, 0.0,
+            0.0, a.cos(), -a.sin(), 0.0,
+            0.0, a.sin(), a.cos(), 0.0,
+            0.0, 0.0, 0.0, 1.0
+        ])
     }
 
     pub fn rotatey(angle_deg: f64) -> Matrix
     {
-        let mut m = Matrix::ident(4);
-        m.set(0, 0, angle_deg.to_radians().cos());
-        m.set(0, 2, angle_deg.to_radians().sin());
-        m.set(2, 0, -angle_deg.to_radians().sin());
-        m.set(2, 2, angle_deg.to_radians().cos());
-        m
+        // let mut m = Matrix::ident(4);
+        // m.set(0, 0, angle_deg.to_radians().cos());
+        // m.set(0, 2, angle_deg.to_radians().sin());
+        // m.set(2, 0, -angle_deg.to_radians().sin());
+        // m.set(2, 2, angle_deg.to_radians().cos());
+        // m
+        let a = angle_deg * std::f64::consts::PI / 180.0;
+        Matrix::new(4, 4, vec![
+            a.cos(),  0.0,  a.sin(), 0.0,
+            0.0,      1.0,  0.0,     0.0,
+            -a.sin(), 0.0,  a.cos(), 0.0,
+            0.0,      0.0,  0.0,     1.0
+        ])
     }
 
     pub fn rotatez(angle_deg: f64) -> Matrix
@@ -221,14 +244,14 @@ impl Matrix
 // print Matrix
 impl fmt::Display for Matrix {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.rows == 0 || self.cols == 0 {
-            write!(f, "Empty matrix ({} by {})", self.rows, self.cols)?;
+        if self.nrows == 0 || self.ncols == 0 {
+            write!(f, "Empty matrix ({} by {})", self.nrows, self.ncols)?;
         } else {
-            writeln!(f, "Matrix ({} by {}) {{", self.rows, self.cols)?;
+            writeln!(f, "Matrix ({} by {}) {{", self.nrows, self.ncols)?;
 
-            for col_offset in 0..self.cols {
+            for col_offset in 0..self.ncols {
                 write!(f, "  ")?; // indentation
-                for d in self.data.iter().skip(col_offset).step_by(self.cols) {
+                for d in self.data.iter().skip(col_offset).step_by(self.ncols) {
                     write!(f, "{arg:.prec$} ", arg = d, prec = 2)?;
                 }
                 writeln!(f)?; // line change
@@ -244,8 +267,8 @@ mod tests {
     use super::*;
 
     fn matrix_equal(m1: &Matrix, m2: &Matrix) -> bool {
-        m1.rows == m2.rows
-            && m1.cols == m2.cols
+        m1.nrows == m2.nrows
+            && m1.ncols == m2.ncols
             && m1.data.iter().zip(m2.data.iter()).all(|(a, b)| a == b)
     }
 

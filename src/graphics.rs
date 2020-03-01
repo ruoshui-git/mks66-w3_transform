@@ -3,7 +3,7 @@ mod utils;
 
 use std::convert::Into;
 
-use matrix::Matrix;
+pub use matrix::Matrix;
 use std::io::{self, prelude::Write};
 use utils::{create_file, polar_to_xy};
 
