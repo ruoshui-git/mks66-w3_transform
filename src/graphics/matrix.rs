@@ -108,7 +108,7 @@ impl Matrix {
 
     /// Multiplies self matrix by other matrix
     pub fn mul(&self, other: &Self) -> Self {
-        // other * self
+        // self * other -> new
         assert_eq!(self.ncols, other.nrows, "ncols of m1 must == nrows of m2");
         let (frows, fcols) = (self.nrows, other.ncols);
         let mut fdata = vec![0.0; frows * fcols];
@@ -204,7 +204,7 @@ impl Matrix
         // m.set(1, 2, -angle_deg.to_radians().sin());
         // m.set(2, 1, angle_deg.to_radians().sin());
         // m
-        let a = angle_deg * std::f64::consts::PI / 180.0;
+        let a = angle_deg.to_radians();
         Matrix::new(4, 4, vec![
             1.0, 0.0, 0.0, 0.0,
             0.0, a.cos(), -a.sin(), 0.0,
@@ -221,7 +221,7 @@ impl Matrix
         // m.set(2, 0, -angle_deg.to_radians().sin());
         // m.set(2, 2, angle_deg.to_radians().cos());
         // m
-        let a = angle_deg * std::f64::consts::PI / 180.0;
+        let a = angle_deg.to_radians();
         Matrix::new(4, 4, vec![
             a.cos(),  0.0,  a.sin(), 0.0,
             0.0,      1.0,  0.0,     0.0,
@@ -240,6 +240,7 @@ impl Matrix
         m
     }
 }
+
 
 // print Matrix
 impl fmt::Display for Matrix {

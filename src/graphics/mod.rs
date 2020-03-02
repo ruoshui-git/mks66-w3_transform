@@ -1,9 +1,10 @@
 pub mod matrix;
+pub mod parser;
 mod utils;
 
 use std::convert::Into;
 
-pub use matrix::Matrix;
+use matrix::Matrix;
 use std::io::{self, prelude::Write};
 use utils::{create_file, polar_to_xy};
 
@@ -170,7 +171,7 @@ impl PPMImg {
         // calculate  values and then truncate
         let (dy, ndx) = (y1 - y0, -(x1 - x0));
 
-        // deal with special cases:
+        // deal with special s:
         if ndx == 0 {
             // vertical line
             let (y0, y1) = if y0 < y1 { (y0, y1) } else { (y1, y0) };
@@ -330,6 +331,7 @@ impl Turtle {
     }
 }
 
+#[allow(dead_code)]
 // draw edge matrix
 impl PPMImg {
     /// Draws an edge matrix

@@ -1,9 +1,9 @@
 mod graphics;
 
-use graphics::PPMImg;
-use graphics::matrix::Matrix;
-
+use graphics::parser::DWScript;
 
 fn main() {
+    let mut script = DWScript::new("script");
+    script.do_parse();
     
 }
